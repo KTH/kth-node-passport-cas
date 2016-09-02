@@ -1,2 +1,2 @@
 # kth-node-passport-cas
-Node.js module with CAS strategy for Passport.
+Cas authentication strategy for Passport based but modified from github.com/sadne/passport-cas.
