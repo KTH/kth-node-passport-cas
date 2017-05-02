@@ -17,6 +17,7 @@
   "license": "MIT",
   "dependencies": {
     "jsdom": "^9.2.1",
+    "kth-node-log": "^2.0.3",
     "passport": "^0.3.2",
     "passport-strategy": "^1.0.0",
     "request": "^2.72.0",
