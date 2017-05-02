@@ -16,6 +16,7 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "co": "^4.6.0",
     "jsdom": "^9.2.1",
     "kth-node-log": "^2.0.3",
     "passport": "^0.3.2",

@@ -2,7 +2,8 @@
 
 const passport = require('passport')
 const log = require('kth-node-log')
-
+const co = require('co')
+const { getSessionUserHelpers } = require('kth-node-ldap')
 
 module.exports = function (options) {
 
@@ -46,7 +47,7 @@ module.exports = function (options) {
           try {
             // Redirects the authenticated user based on the user group membership.
             log.debug('Redirects the authenticated user based on the user group membership')
-            redirectAuthenticatedUser(user, res, req, info.pgtIou)
+            return redirectAuthenticatedUser(user, res, req, info.pgtIou)
           } catch (err) {
             log.debug('Could not redirect the authenticated user based on the user group membership')
             return next(err)
@@ -76,7 +77,7 @@ module.exports = function (options) {
         }
 
         try {
-          redirectAuthenticatedUser(user, res, req, info && info.pgtIou)
+          return redirectAuthenticatedUser(user, res, req, info && info.pgtIou)
         } catch (err) {
           next(err)
         }
@@ -185,6 +186,7 @@ module.exports = function (options) {
    */
   function redirectAuthenticatedUser (kthid, res, req, pgtIou) {
     var searchFilter = ldapConfig.filter.replace(ldapConfig.filterReplaceHolder, kthid)
+    var session = getSessionUserHelpers({ adminGroup:  options.adminGroup }) // config.auth.adminGroup
 
     var searchOptions = {
       scope: ldapConfig.scope,
@@ -194,45 +196,49 @@ module.exports = function (options) {
       timeLimit: ldapConfig.searchtimeout
     }
 
-    ldapClient.search(ldapConfig.base, searchOptions, function (err, users) {
-      if (err) {
-        log.error({ err: err }, 'LDAP search error')
+  co(function * () {
+    const res = yield ldapClient.search(config.ldap.base, searchOptions)
+
+    yield res.each(co.wrap(function * (entry) {
+        // do something with entry
+        var user = {
+          givenName: entry.object.givenName,
+          familyName: entry.object.familyName,
+          // this library also provides a helper to convert dates
+          // assuming updatedOn is a lexical utc date (e.g. '20160921123456.0Z')
+          updatedOn: ldap.utils.toDate(entry.object.updatedOn)
+        }
+        
+        // e.g. yield _saveToDb(user)
+        
+        // NOTE: if you do a bulk insert here, make sure you execute
+        // the bulk every so often in case the search result contains
+        // thousands of entries...
+    }))
+      
+      client.close()
+    })
+    .then((entry) => {
+      log.debug({ searchEntry: entry.object }, 'LDAP search result')
+
+      if (entry) {
+        session.SetLdapUser(req, entry.object, pgtIou)
+        if (req.query['nextUrl']) {
+          log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, redirecting to ${req.query[ 'nextUrl' ]}`)
+          res.redirect(req.query[ 'nextUrl' ])
+        } else {
+          log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to app root`)
+          res.redirect('/' + config.proxyPrefixPath.uri)       
+        }
+      } else {
+        log.info({ req: req }, `Logged in user (${kthid}), does not exist in required group to /`)
         res.redirect('/')
       }
-
-      // result received, set user in session and redirect
-      users.on('searchEntry', function (entry) {
-        log.debug({ searchEntry: entry.object }, 'LDAP search result')
-
-        if (entry) {
-          session.SetLdapUser(req, entry.object, pgtIou)
-          if (req.query['nextUrl']) {
-            log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, redirecting to ${req.query[ 'nextUrl' ]}`)
-            res.redirect(req.query[ 'nextUrl' ])
-          } else {
-            log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to /`)
-            res.redirect('/node')       
-          }
-        } else {
-          log.info({ req: req }, `Logged in user (${kthid}), does not exist in required group to /`)
-          res.redirect('/')
-        }
-      })
-
-      // ERROR received, log error and redirect to '/' in want of better
-      users.on('error', function (err) {
-        log.error({ err: err }, 'LDAP error')
-        res.redirect('/')
-      })
-
-      // events not used for the time being
-      users.on('searchReference', function (referral) {
-        log.debug('referral: ' + referral.uris.join())
-      })
-
-      users.on('end', function (result) {
-        log.debug('status: ' + result.status)
-      })
+    })
+    .catch((err) => {
+      log.error({ err: err }, 'LDAP search error')
+      // Is this really desired behaviour? Would make more sense if we got an error message
+      res.redirect('/')
     })
   }
 
