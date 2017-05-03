@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Cas authentication strategy for Passport based but modified from github.com/sadne/passport-cas.",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "test": "echo \"ok\""
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/KTH/kth-node-passport-cas"
