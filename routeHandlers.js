@@ -3,12 +3,10 @@
 const passport = require('passport')
 const log = require('kth-node-log')
 const co = require('co')
-const { getSessionUserHelpers, utils } = require('kth-node-ldap')
+const { getSessionUserHelpers } = require('kth-node-ldap')
 
 module.exports = function (options) {
-
   const adminGroup = options.adminGroup // config.auth.adminGroup
-  const proxyPrefixPathUri = options.proxyPrefixPathUri // config.proxyPrefixPath.uri
   const casLoginUri = options.casLoginUri // paths.cas.login.uri
   const casGatewayUri = options.casGatewayUri // paths.cas.gateway.uri
   const ldapConfig = options.ldapConfig // config.ldap
@@ -105,8 +103,6 @@ module.exports = function (options) {
     res.redirect('/')
   }
 
- 
-
   function pgtCallbackHandler (req, res) {
     log.debug('CAS pgtCallback')
     if (req.query.pgtIou !== undefined) {
@@ -188,7 +184,7 @@ module.exports = function (options) {
    */
   function redirectAuthenticatedUser (kthid, res, req, pgtIou) {
     var searchFilter = ldapConfig.filter.replace(ldapConfig.filterReplaceHolder, kthid)
-    var session = getSessionUserHelpers({ adminGroup:  adminGroup }) // config.auth.adminGroup
+    var session = getSessionUserHelpers({ adminGroup: adminGroup }) // config.auth.adminGroup
 
     var searchOptions = {
       scope: ldapConfig.scope,
@@ -198,36 +194,36 @@ module.exports = function (options) {
       timeLimit: ldapConfig.searchtimeout
     }
 
-  co(function * () {
-    const res = yield ldapClient.search(ldapConfig.base, searchOptions)
+    co(function * () {
+      const res = yield ldapClient.search(ldapConfig.base, searchOptions)
 
-    let user
-    yield res.each(co.wrap(function * (entry) {
-      user = user || entry.object
-    }))      
-    return user
-  })
-    .then((user) => {
-      log.debug({ searchEntry: user }, 'LDAP search result')
+      let user
+      yield res.each(co.wrap(function * (entry) {
+        user = user || entry.object
+      }))
+      return user
+    })
+      .then((user) => {
+        log.debug({ searchEntry: user }, 'LDAP search result')
 
-      if (user) {
-        session.SetLdapUser(req, user, pgtIou)
-        if (req.query['nextUrl']) {
-          log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, redirecting to ${req.query[ 'nextUrl' ]}`)
+        if (user) {
+          session.SetLdapUser(req, user, pgtIou)
+          if (req.query['nextUrl']) {
+            log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, redirecting to ${req.query[ 'nextUrl' ]}`)
+          } else {
+            log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to /`)
+          }
+          return res.redirect(req.query[ 'nextUrl' ] || '/')
         } else {
-          log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to /`)
+          log.info({ req: req }, `Logged in user (${kthid}), does not exist in required group to /`)
+          return res.redirect('/')
         }
-        return res.redirect(req.query[ 'nextUrl' ] || '/')
-      } else {
-        log.info({ req: req }, `Logged in user (${kthid}), does not exist in required group to /`)
-        return res.redirect('/')
-      }
-    })
-    .catch((err) => {
-      log.error({ err: err }, 'LDAP search error')
-      // Is this really desired behaviour? Would make more sense if we got an error message
-      res.redirect('/')
-    })
+      })
+      .catch((err) => {
+        log.error({ err: err }, 'LDAP search error')
+        // Is this really desired behaviour? Would make more sense if we got an error message
+        res.redirect('/')
+      })
   }
 
   return {

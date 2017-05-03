@@ -90,7 +90,6 @@ server.use(passport.session())
 
 const { authLoginHandler, authCheckHandler, logoutHandler, pgtCallbackHandler, serverLogin, getServerGatewayLogin } = require('kth-node-passport-cas').routeHandlers({
   adminGroup: 'group_name', // LDAP admin group for this app
-  proxyPrefixPathUri: '/app/mountpoint',
   casLoginUri: '/app/mountpoint/login',
   casGatewayUri: '/app/mountpoint/loginGateway',
   ldapConfig: ldapConfig,
