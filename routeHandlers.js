@@ -3,10 +3,12 @@
 const passport = require('passport')
 const log = require('kth-node-log')
 const co = require('co')
-const { getSessionUserHelpers } = require('kth-node-ldap')
+const { getSessionUserHelpers, utils } = require('kth-node-ldap')
 
 module.exports = function (options) {
 
+  const adminGroup = options.adminGroup // config.auth.adminGroup
+  const proxyPrefixPathUri = options.proxyPrefixPathUri // config.proxyPrefixPath.uri
   const casLoginUri = options.casLoginUri // paths.cas.login.uri
   const casGatewayUri = options.casGatewayUri // paths.cas.gateway.uri
   const ldapConfig = options.ldapConfig // config.ldap
@@ -138,7 +140,7 @@ module.exports = function (options) {
         res.send('403 Not authorized for this resource')
       }
     } else {
-      req.nextUrl = req.url
+      req.nextUrl = req.originalUrl
       log.debug('Next url: ' + req.nextUrl)
       return res.redirect(casLoginUri + '?nextUrl=' + encodeURIComponent(req.nextUrl))
     }
@@ -186,7 +188,7 @@ module.exports = function (options) {
    */
   function redirectAuthenticatedUser (kthid, res, req, pgtIou) {
     var searchFilter = ldapConfig.filter.replace(ldapConfig.filterReplaceHolder, kthid)
-    var session = getSessionUserHelpers({ adminGroup:  options.adminGroup }) // config.auth.adminGroup
+    var session = getSessionUserHelpers({ adminGroup:  adminGroup }) // config.auth.adminGroup
 
     var searchOptions = {
       scope: ldapConfig.scope,
@@ -197,42 +199,28 @@ module.exports = function (options) {
     }
 
   co(function * () {
-    const res = yield ldapClient.search(config.ldap.base, searchOptions)
+    const res = yield ldapClient.search(ldapConfig.base, searchOptions)
 
+    let user
     yield res.each(co.wrap(function * (entry) {
-        // do something with entry
-        var user = {
-          givenName: entry.object.givenName,
-          familyName: entry.object.familyName,
-          // this library also provides a helper to convert dates
-          // assuming updatedOn is a lexical utc date (e.g. '20160921123456.0Z')
-          updatedOn: ldap.utils.toDate(entry.object.updatedOn)
-        }
-        
-        // e.g. yield _saveToDb(user)
-        
-        // NOTE: if you do a bulk insert here, make sure you execute
-        // the bulk every so often in case the search result contains
-        // thousands of entries...
-    }))
-      
-      client.close()
-    })
-    .then((entry) => {
-      log.debug({ searchEntry: entry.object }, 'LDAP search result')
+      user = user || entry.object
+    }))      
+    return user
+  })
+    .then((user) => {
+      log.debug({ searchEntry: user }, 'LDAP search result')
 
-      if (entry) {
-        session.SetLdapUser(req, entry.object, pgtIou)
+      if (user) {
+        session.SetLdapUser(req, user, pgtIou)
         if (req.query['nextUrl']) {
           log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, redirecting to ${req.query[ 'nextUrl' ]}`)
-          res.redirect(req.query[ 'nextUrl' ])
         } else {
-          log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to app root`)
-          res.redirect('/' + config.proxyPrefixPath.uri)       
+          log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to /`)
         }
+        return res.redirect(req.query[ 'nextUrl' ] || '/')
       } else {
         log.info({ req: req }, `Logged in user (${kthid}), does not exist in required group to /`)
-        res.redirect('/')
+        return res.redirect('/')
       }
     })
     .catch((err) => {
@@ -243,11 +231,11 @@ module.exports = function (options) {
   }
 
   return {
-    loginHandler: loginHandler,
-    gatewayLoginHandler: gatewayHandler,
+    authLoginHandler: loginHandler,
+    authCheckHandler: gatewayHandler,
     logoutHandler: logoutHandler,
     pgtCallbackHandler: pgtCallbackHandler,
     serverLogin: serverLogin,
-    serverGatewayLogin: serverGatewayLogin
+    getServerGatewayLogin: serverGatewayLogin
   }
 }
