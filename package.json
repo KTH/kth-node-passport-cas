@@ -4,7 +4,10 @@
   "description": "Cas authentication strategy for Passport based but modified from github.com/sadne/passport-cas.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"ok\""
+    "test": "echo \"ok\"",
+    "codecheck": "standard",
+    "preversion": "npm run codecheck && npm run test",
+    "postversion": "git push && git push --tags"
   },
   "repository": {
     "type": "git",
@@ -20,11 +23,16 @@
   "dependencies": {
     "co": "^4.6.0",
     "jsdom": "^9.2.1",
-    "kth-node-log": "^2.0.3",
-    "passport": "^0.3.2",
-    "passport-strategy": "^1.0.0",
     "request": "^2.72.0",
     "xml2js": "^0.4.16"
   },
-  "private": true
+  "peerDependencies": {
+    "kth-node-log": "^2.0.3",
+    "passport": "^0.3.2",
+    "passport-strategy": "^1.0.0"
+  },
+  "private": true,
+  "devDependencies": {
+    "standard": "^10.0.2"
+  }
 }
