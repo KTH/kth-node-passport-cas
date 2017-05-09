@@ -3,14 +3,11 @@
 const passport = require('passport')
 const log = require('kth-node-log')
 const co = require('co')
-const { getSessionUserHelpers } = require('kth-node-ldap')
 
 module.exports = function (options) {
-  const adminGroup = options.adminGroup // config.auth.adminGroup
   const casLoginUri = options.casLoginUri // paths.cas.login.uri
   const casGatewayUri = options.casGatewayUri // paths.cas.gateway.uri
   const ldapConfig = options.ldapConfig // config.ldap
-  const ldapClient = options.ldapClient
   const server = options.server
 
   /**
@@ -47,7 +44,10 @@ module.exports = function (options) {
           try {
             // Redirects the authenticated user based on the user group membership.
             log.debug('Redirects the authenticated user based on the user group membership')
-            return redirectAuthenticatedUser(user, res, req, info.pgtIou)
+            // return redirectAuthenticatedUser(user, res, req, info.pgtIou)
+            res.locals.userId = user
+            res.locals.pgtIou = info.pgtIou
+            return next()
           } catch (err) {
             log.debug('Could not redirect the authenticated user based on the user group membership')
             return next(err)
@@ -77,7 +77,10 @@ module.exports = function (options) {
         }
 
         try {
-          return redirectAuthenticatedUser(user, res, req, info && info.pgtIou)
+          // return redirectAuthenticatedUser(user, res, req, info && info.pgtIou)
+          res.locals.userId = user
+          res.locals.pgtIou = info.pgtIou
+          return next()
         } catch (err) {
           next(err)
         }
@@ -173,18 +176,36 @@ module.exports = function (options) {
     }
   }
 
-  /**
-   * Search user using LDAPJS.
-   * scope  One of base, one, or sub. Defaults to base.
-   * filter  A string version of an LDAP filter (see below), or a programatically constructed Filter object. Defaults to (objectclass=*).
-   * attributes  attributes to select and return (if these are set, the server will return only these attributes). Defaults to the empty set, which means all attributes.
-   * attrsOnly  boolean on whether you want the server to only return the names of the attributes, and not their values. Borderline useless. Defaults to false.
-   * sizeLimit  the maximum number of entries to return. Defaults to 0 (unlimited).
-   * timeLimit  the maximum amount of time the server should take in responding, in seconds. Defaults to 10. Lots of servers will ignore this.
-   */
-  function redirectAuthenticatedUser (kthid, res, req, pgtIou) {
+  return {
+    authLoginHandler: loginHandler,
+    authCheckHandler: gatewayHandler,
+    logoutHandler: logoutHandler,
+    pgtCallbackHandler: pgtCallbackHandler,
+    getRedirectAuthenticatedUserHandler: getRedirectAuthenticatedUser,
+    serverLogin: serverLogin,
+    getServerGatewayLogin: serverGatewayLogin
+  }
+}
+
+/**
+ * Search user using LDAPJS.
+ * scope  One of base, one, or sub. Defaults to base.
+ * filter  A string version of an LDAP filter (see below), or a programatically constructed Filter object. Defaults to (objectclass=*).
+ * attributes  attributes to select and return (if these are set, the server will return only these attributes). Defaults to the empty set, which means all attributes.
+ * attrsOnly  boolean on whether you want the server to only return the names of the attributes, and not their values. Borderline useless. Defaults to false.
+ * sizeLimit  the maximum number of entries to return. Defaults to 0 (unlimited).
+ * timeLimit  the maximum amount of time the server should take in responding, in seconds. Defaults to 10. Lots of servers will ignore this.
+ */
+module.exports.getRedirectAuthenticatedUser = function (options) {
+  const unpackLdapUser = options.unpackLdapUser
+  const ldapConfig = options.ldapConfig
+  const ldapClient = options.ldapClient
+
+  return function redirectAuthenticatedUser (req, res) {
+    const kthid = res.locals.userId
+    const pgtIou = res.locals.pgtIou
+
     var searchFilter = ldapConfig.filter.replace(ldapConfig.filterReplaceHolder, kthid)
-    var session = getSessionUserHelpers({ adminGroup: adminGroup }) // config.auth.adminGroup
 
     var searchOptions = {
       scope: ldapConfig.scope,
@@ -207,7 +228,7 @@ module.exports = function (options) {
         log.debug({ searchEntry: user }, 'LDAP search result')
 
         if (user) {
-          session.SetLdapUser(req, user, pgtIou)
+          req.session.authUser = unpackLdapUser(user, pgtIou)
           if (req.query['nextUrl']) {
             log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, redirecting to ${req.query[ 'nextUrl' ]}`)
           } else {
@@ -222,16 +243,8 @@ module.exports = function (options) {
       .catch((err) => {
         log.error({ err: err }, 'LDAP search error')
         // Is this really desired behaviour? Would make more sense if we got an error message
-        res.redirect('/')
+        return res.redirect('/')
       })
   }
 
-  return {
-    authLoginHandler: loginHandler,
-    authCheckHandler: gatewayHandler,
-    logoutHandler: logoutHandler,
-    pgtCallbackHandler: pgtCallbackHandler,
-    serverLogin: serverLogin,
-    getServerGatewayLogin: serverGatewayLogin
-  }
 }
