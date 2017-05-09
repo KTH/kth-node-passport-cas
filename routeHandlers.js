@@ -7,7 +7,6 @@ const co = require('co')
 module.exports = function (options) {
   const casLoginUri = options.casLoginUri // paths.cas.login.uri
   const casGatewayUri = options.casGatewayUri // paths.cas.gateway.uri
-  const ldapConfig = options.ldapConfig // config.ldap
   const server = options.server
 
   /**
@@ -181,7 +180,6 @@ module.exports = function (options) {
     authCheckHandler: gatewayHandler,
     logoutHandler: logoutHandler,
     pgtCallbackHandler: pgtCallbackHandler,
-    getRedirectAuthenticatedUserHandler: getRedirectAuthenticatedUser,
     serverLogin: serverLogin,
     getServerGatewayLogin: serverGatewayLogin
   }
@@ -246,5 +244,4 @@ module.exports.getRedirectAuthenticatedUser = function (options) {
         return res.redirect('/')
       })
   }
-
 }
