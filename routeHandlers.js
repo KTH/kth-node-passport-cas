@@ -120,17 +120,24 @@ module.exports = function (options) {
    * Setting config value ldap.authorizeUser to false will disable
    * authorization, any logged in user will gain access
    */
+  function _clearUser (req) {
+    delete req.user
+    if (req.session.authUser) {
+      delete req.session.authUser
+    }
+  }
+
   function serverLogin (req, res, next) {
     log.debug({ session: req.session }, 'Login function called. User: ' + req.user)
 
     if (req.user && req.user === 'anonymous-user') {
-      req.user = undefined
+      _clearUser(req)
     }
 
     if (req.user) {
       log.debug('req.user: ' + JSON.stringify(req.user))
-      if (req.session.ldapUserName) {
-        log.info({ req: req }, 'User logged in, found ldap user: ' + req.session.ldapUserName)
+      if (req.session.authUser && req.session.authUser.username) {
+        log.info({ req: req }, 'User logged in, found ldap user: ' + req.session.authUser.username)
         next()
       } else {
         log.info('unable to find ldap user: ' + req.user)
@@ -152,7 +159,7 @@ module.exports = function (options) {
       }
 
       if (req.user && req.user === 'anonymous-user') {
-        delete req.user
+        _clearUser(req)
       }
 
       if (req.session.gatewayAttempts >= 2) {
