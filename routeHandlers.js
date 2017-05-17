@@ -225,7 +225,7 @@ module.exports.getRedirectAuthenticatedUser = function (options) {
 
       let user
       yield res.each(co.wrap(function * (entry) {
-        user = user || entry.object
+        user = user || entry
       }))
       return user
     })
