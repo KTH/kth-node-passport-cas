@@ -28,6 +28,7 @@
   },
   "peerDependencies": {
     "kth-node-log": "^2.0.3",
+    "kth-node-ldap": "^2.1.0",
     "passport": "^0.3.2",
     "passport-strategy": "^1.0.0"
   },

@@ -2,7 +2,6 @@
 
 const passport = require('passport')
 const log = require('kth-node-log')
-const co = require('co')
 
 module.exports = function (options) {
   const casLoginUri = options.casLoginUri // paths.cas.login.uri
@@ -211,7 +210,7 @@ module.exports.getRedirectAuthenticatedUser = function (options) {
     const pgtIou = res.locals.pgtIou
 
     var searchFilter = ldapConfig.filter.replace(ldapConfig.filterReplaceHolder, kthid)
-
+    log.debug('Redirecting user with id', {kthId: kthid})
     var searchOptions = {
       scope: ldapConfig.scope,
       filter: searchFilter,
@@ -219,36 +218,27 @@ module.exports.getRedirectAuthenticatedUser = function (options) {
       sizeLimits: ldapConfig.searchlimit,
       timeLimit: ldapConfig.searchtimeout
     }
+    ldapClient.searchOne(ldapConfig.base, searchOptions)
+    .then((user) => {
+      log.debug({ searchEntry: user }, 'LDAP search result')
 
-    co(function * () {
-      const res = yield ldapClient.search(ldapConfig.base, searchOptions)
-
-      let user
-      yield res.each(co.wrap(function * (entry) {
-        user = user || entry
-      }))
-      return user
-    })
-      .then((user) => {
-        log.debug({ searchEntry: user }, 'LDAP search result')
-
-        if (user) {
-          req.session.authUser = unpackLdapUser(user, pgtIou)
-          if (req.query['nextUrl']) {
-            log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, redirecting to ${req.query[ 'nextUrl' ]}`)
-          } else {
-            log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to /`)
-          }
-          return res.redirect(req.query[ 'nextUrl' ] || '/')
+      if (user) {
+        req.session.authUser = unpackLdapUser(user, pgtIou)
+        if (req.query['nextUrl']) {
+          log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, redirecting to ${req.query[ 'nextUrl' ]}`)
         } else {
-          log.info({ req: req }, `Logged in user (${kthid}), does not exist in required group to /`)
-          return res.redirect('/')
+          log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to /`)
         }
-      })
-      .catch((err) => {
-        log.error({ err: err }, 'LDAP search error')
-        // Is this really desired behaviour? Would make more sense if we got an error message
+        return res.redirect(req.query[ 'nextUrl' ] || '/')
+      } else {
+        log.info({ req: req }, `Logged in user (${kthid}), does not exist in required group to /`)
         return res.redirect('/')
-      })
+      }
+    })
+    .catch((err) => {
+      log.error({ err: err }, 'LDAP search error')
+      // Is this really desired behaviour? Would make more sense if we got an error message
+      return res.redirect('/')
+    })
   }
 }
