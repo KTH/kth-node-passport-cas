@@ -182,7 +182,7 @@ module.exports = function (options) {
         req.session.redirectTo = req.originalUrl
         req.session.fallbackTo = fallback
         var token = jwt.sign({gatewayAttempts: gatewayAttempts + 1}, jwtKey)
-        var nextUrl = url.parse(req.originalUrl).path
+        var nextUrl = url.parse(req.originalUrl).pathname
         res.redirect(casGatewayUri + '?nextUrl=' + encodeURIComponent(nextUrl + '?token=' + token))
       }
     }
