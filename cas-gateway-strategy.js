@@ -3,7 +3,6 @@
 const PassportStrategy = require('passport-strategy')
 const util = require('util')
 const url = require('url')
-const R = require('ramda')
 const qstring = require('querystring')
 const request = require('request')
 const xml2js = require('xml2js')
@@ -78,25 +77,11 @@ GatewayStrategy.prototype.authenticate = function (req, options) {
   const loginUrl = url.parse(this.loginUrl, true)
 
   const serviceUrl = req.protocol + '://' + req.get('host') + req.originalUrl
-
-  // Function compositions read right-to-left, or bottom-to-top, i.e. the last function is applied first
-  var nextUrlPath = R.compose(
-    uri => url.parse(uri).pathname,
-    uri => qstring.parse(uri).nextUrl,
-    req => url.parse(req.originalUrl).query
-  )(req)
-
-  var token = R.compose(
-    obj => obj.token,
-    uri => qstring.parse(uri),
-    uri => url.parse(uri).query,
-    uri => decodeURIComponent(uri),
-    req => url.parse(req.originalUrl).query
-  )(req)
-
+  var nextUrlPath = url.parse(qstring.parse(url.parse(req.originalUrl).query).nextUrl).pathname
+  var obj = qstring.parse(url.parse(decodeURIComponent(url.parse(req.originalUrl).query)).query)
   // req.query.nextUrl
   if (!ticket) {
-    var decoded = token && jwt.verify(token, this.jwtKey)
+    var decoded = obj.token && jwt.verify(obj.token, this.jwtKey)
     var gatewayAttempts = decoded && decoded.gatewayAttempts ? parseInt(decoded.gatewayAttempts) : 0
     if (gatewayAttempts >= 2) {
       return this.success(this.anonymous)
