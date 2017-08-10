@@ -157,6 +157,11 @@ module.exports = function (options) {
         return next(new Error('sessions unavailable'))
       }
 
+      if (req.user && req.user === 'anonymous-user' && req.session.seen) {
+        _clearUser(req)
+      }
+      req.session.seen = true
+
       if (req.session.gatewayAttempts >= 2) {
         log.debug('gatewayLogin: exhausted gateway attempts, allow access as anonymous user')
         log.debug({ session: req.session }, 'gatewayLogin: session')
