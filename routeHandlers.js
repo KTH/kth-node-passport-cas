@@ -2,14 +2,11 @@
 
 const passport = require('passport')
 const log = require('kth-node-log')
-const jwt = require('jsonwebtoken')
-const url = require('url')
 
 module.exports = function (options) {
   const casLoginUri = options.casLoginUri // paths.cas.login.uri
   const casGatewayUri = options.casGatewayUri // paths.cas.gateway.uri
   const server = options.server
-  const jwtKey = options.jwtKey
 
   /**
    * GET request to the login path E.g /login
@@ -164,12 +161,10 @@ module.exports = function (options) {
         _clearUser(req)
       }
 
-      var decoded = req.query.token && jwt.verify(req.query.token, jwtKey)
-      var gatewayAttempts = decoded && decoded.gatewayAttempts ? parseInt(decoded.gatewayAttempts) : 0
-      if (gatewayAttempts >= 2) {
+      if (req.session.gatewayAttempts >= 2) {
         log.debug('gatewayLogin: exhausted gateway attempts, allow access as anonymous user')
         log.debug({ session: req.session }, 'gatewayLogin: session')
-        decoded.gatewayAttempts = 0 // reset gateway attempts to fix authentication for users not logged in the first time a cookie is set
+        req.session.gatewayAttempts = 0 // reset gateway attempts to fix authentication for users not logged in the first time a cookie is set
         next()
         return
       }
@@ -181,9 +176,7 @@ module.exports = function (options) {
         log.debug('gatewayLogin: no user, attempt gateway login')
         req.session.redirectTo = req.originalUrl
         req.session.fallbackTo = fallback
-        var token = jwt.sign({gatewayAttempts: gatewayAttempts + 1}, jwtKey)
-        var nextUrl = url.parse(req.originalUrl).path
-        res.redirect(casGatewayUri + '?nextUrl=' + encodeURIComponent(nextUrl + '?token=' + token))
+        res.redirect(casGatewayUri + '?nextUrl=' + encodeURIComponent(req.originalUrl))
       }
     }
   }

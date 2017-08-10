@@ -3,10 +3,8 @@
 const PassportStrategy = require('passport-strategy')
 const util = require('util')
 const url = require('url')
-const qstring = require('querystring')
 const request = require('request')
 const xml2js = require('xml2js')
-const jwt = require('jsonwebtoken')
 
 const defaults = {
   casUrl: '',
@@ -40,7 +38,6 @@ function GatewayStrategy (options, verify) {
   this.maxAttempts = options.maxAttempts || defaults.maxAttempts
   this.casUrl = options.casUrl
   this.loginUrl = url.resolve(this.casUrl, '/login')
-  this.jwtKey = options.jwtKey
   this.serviceValidateUrl = url.resolve(this.casUrl, '/serviceValidate')
 
   if (typeof this.verify !== 'function') {
@@ -75,27 +72,24 @@ util.inherits(GatewayStrategy, PassportStrategy)
 GatewayStrategy.prototype.authenticate = function (req, options) {
   const ticket = req.query.ticket
   const loginUrl = url.parse(this.loginUrl, true)
-
   const serviceUrl = req.protocol + '://' + req.get('host') + req.originalUrl
-  var nextUrlPath = url.parse(qstring.parse(url.parse(req.originalUrl).query).nextUrl).pathname
-  var obj = qstring.parse(url.parse(decodeURIComponent(url.parse(req.originalUrl).query)).query)
-  // req.query.nextUrl
+
   if (!ticket) {
-    var decoded = obj.token && jwt.verify(obj.token, this.jwtKey)
-    var gatewayAttempts = decoded && decoded.gatewayAttempts ? parseInt(decoded.gatewayAttempts) : 0
-    if (gatewayAttempts >= 2) {
+    if (req.session.gatewayAttempts === 2) {
       return this.success(this.anonymous)
     }
 
     delete loginUrl.search
 
-    decoded = {
-      gatewayAttempts: gatewayAttempts + 1
-    }
-
     loginUrl.query = {
       gateway: true,
-      service: req.protocol + '://' + req.get('host') + nextUrlPath + '?token=' + jwt.sign(decoded, this.jwtKey)
+      service: serviceUrl
+    }
+
+    if (!req.session.gatewayAttempts) {
+      req.session.gatewayAttempts = 1
+    } else {
+      req.session.gatewayAttempts += 1
     }
 
     return this.redirect(url.format(loginUrl))
