@@ -158,6 +158,13 @@ module.exports = function (options) {
         return next(new Error('sessions unavailable'))
       }
 
+      /**
+        This hack solves the conflicting demands of directory and profiles
+        if a user isn't logged in when viewing a directory page, we don't want to do
+        a round trip to the CAS for every request. On the other hand if the user is not
+        logged in when viewing a profile page, and then logs in, we do want to send the user
+        back to the CAS.
+       */
       const time = new Date().getTime() / 1000
       if (req.user && req.user === 'anonymous-user' && time - req.session.time > cookieTimeout) {
         _clearUser(req)
