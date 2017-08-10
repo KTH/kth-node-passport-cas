@@ -7,6 +7,7 @@ module.exports = function (options) {
   const casLoginUri = options.casLoginUri // paths.cas.login.uri
   const casGatewayUri = options.casGatewayUri // paths.cas.gateway.uri
   const server = options.server
+  const cookieTimeout = options.cookieTimeout || 0
 
   /**
    * GET request to the login path E.g /login
@@ -158,7 +159,7 @@ module.exports = function (options) {
       }
 
       const time = new Date().getTime() / 1000
-      if (req.user && req.user === 'anonymous-user' && time - req.session.time > 5) {
+      if (req.user && req.user === 'anonymous-user' && time - req.session.time > cookieTimeout) {
         _clearUser(req)
       }
       req.session.time = time
