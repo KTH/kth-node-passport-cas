@@ -157,10 +157,11 @@ module.exports = function (options) {
         return next(new Error('sessions unavailable'))
       }
 
-      if (req.user && req.user === 'anonymous-user' && req.session.seen) {
+      const time = new Date().getTime() / 1000
+      if (req.user && req.user === 'anonymous-user' && time - req.session.time > 5) {
         _clearUser(req)
       }
-      req.session.seen = true
+      req.session.time = time
 
       if (req.session.gatewayAttempts >= 2) {
         log.debug('gatewayLogin: exhausted gateway attempts, allow access as anonymous user')
