@@ -13,6 +13,7 @@ const passport = require('passport')
 const Strategy = require('kth-node-passport-cas').Strategy
 const log = require('kth-node-log')
 
+
 const casOptions = {
   ssoBaseURL: 'https://url.to/cas',
   serverBaseURL: 'http://url.to.me:port',
@@ -66,6 +67,7 @@ Express route handlers used for KTH CAS authentication.
 
 ```JavaScript
 const ldapConfig = { ... } // Object structure can be found in kth-node-configuration
+const COOKIE_TIMEOUT = 5 // in seconds. The cookie timeout determines how long a user is considered "anonymous"
 
 const ldap = require('kth-node-ldap')
 const ldapClient =  ldap.createClient({
@@ -92,6 +94,7 @@ const { authLoginHandler, authCheckHandler, logoutHandler, pgtCallbackHandler, s
   adminGroup: 'group_name', // LDAP admin group for this app
   casLoginUri: '/app/mountpoint/login',
   casGatewayUri: '/app/mountpoint/loginGateway',
+  cookieTimeout: COOKIE_TIMEOUT,  
   ldapConfig: ldapConfig,
   ldapClient: ldapClient,
   server: server
