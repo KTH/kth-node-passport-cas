@@ -1,6 +1,6 @@
 {
   "name": "kth-node-passport-cas",
-  "version": "2.1.5",
+  "version": "3.0.0",
   "description": "Cas authentication strategy for Passport based but modified from github.com/sadne/passport-cas.",
   "main": "index.js",
   "scripts": {
