@@ -5,9 +5,26 @@ const log = require('kth-node-log')
 
 module.exports = function (options) {
   const casLoginUri = options.casLoginUri // paths.cas.login.uri
+  if (!casLoginUri || typeof casLoginUri !== 'string') throw(Error('Missing options.casLoginUri when setting up route handlers'))
+
   const casGatewayUri = options.casGatewayUri // paths.cas.gateway.uri
+  if (!casGatewayUri || typeof casGatewayUri !== 'string') throw(Error('Missing options.casGatewayUri when setting up route handlers'))
+    
+  const proxyPrefixPath = options.proxyPrefixPath
+  if (!proxyPrefixPath || typeof proxyPrefixPath !== 'string') throw(Error('Missing options.proxyPrefixPath when setting up route handlers'))
+  
   const server = options.server
   const cookieTimeout = options.cookieTimeout || 0
+
+  const _protectUrlFromInjection = function (inStr) {
+    if (inStr === '/') {
+      return inStr
+    } else if (inStr.startsWith(proxyPrefixPath)) {
+      return inStr
+    } else {
+      throw(Error('Possible JavaScript-injection vuln during redirect'))
+    }
+  }
 
   /**
    * GET request to the login path E.g /login
@@ -71,7 +88,8 @@ module.exports = function (options) {
         }
 
         if (user === 'anonymous-user') {
-          res.redirect(req.query['nextUrl'])
+          // TODO: potential JS-injection
+          res.redirect(_protectUrlFromInjection(req.query['nextUrl']))
           return
         }
 
@@ -239,7 +257,8 @@ module.exports.getRedirectAuthenticatedUser = function (options) {
         } else {
           log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to /`)
         }
-        return res.redirect(req.query[ 'nextUrl' ] || '/')
+        // TODO: potential JS-injection
+        return res.redirect(_protectUrlFromInjection(req.query[ 'nextUrl' ] || '/'))
       } else {
         log.info({ req: req }, `Logged in user (${kthid}), does not exist in required group to /`)
         return res.redirect('/')
