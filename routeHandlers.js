@@ -3,28 +3,28 @@
 const passport = require('passport')
 const log = require('kth-node-log')
 
+function _protectUrlFromInjection (inStr, proxyPrefixPath) {
+  if (inStr === '/') {
+    return inStr
+  } else if (inStr.startsWith(proxyPrefixPath)) {
+    return inStr
+  } else {
+    throw Error('Possible JavaScript-injection vuln during redirect')
+  }
+}
+
 module.exports = function (options) {
   const casLoginUri = options.casLoginUri // paths.cas.login.uri
-  if (!casLoginUri || typeof casLoginUri !== 'string') throw(Error('Missing options.casLoginUri when setting up route handlers'))
+  if (!casLoginUri || typeof casLoginUri !== 'string') throw Error('Missing options.casLoginUri when setting up route handlers')
 
   const casGatewayUri = options.casGatewayUri // paths.cas.gateway.uri
-  if (!casGatewayUri || typeof casGatewayUri !== 'string') throw(Error('Missing options.casGatewayUri when setting up route handlers'))
-    
+  if (!casGatewayUri || typeof casGatewayUri !== 'string') throw Error('Missing options.casGatewayUri when setting up route handlers')
+
   const proxyPrefixPath = options.proxyPrefixPath
-  if (!proxyPrefixPath || typeof proxyPrefixPath !== 'string') throw(Error('Missing options.proxyPrefixPath when setting up route handlers'))
-  
+  if (!proxyPrefixPath || typeof proxyPrefixPath !== 'string') throw Error('Missing options.proxyPrefixPath when setting up route handlers')
+
   const server = options.server
   const cookieTimeout = options.cookieTimeout || 0
-
-  const _protectUrlFromInjection = function (inStr) {
-    if (inStr === '/') {
-      return inStr
-    } else if (inStr.startsWith(proxyPrefixPath)) {
-      return inStr
-    } else {
-      throw(Error('Possible JavaScript-injection vuln during redirect'))
-    }
-  }
 
   /**
    * GET request to the login path E.g /login
@@ -88,9 +88,12 @@ module.exports = function (options) {
         }
 
         if (user === 'anonymous-user') {
-          // TODO: potential JS-injection
-          res.redirect(_protectUrlFromInjection(req.query['nextUrl']))
-          return
+          try {
+            return res.redirect(_protectUrlFromInjection(req.query['nextUrl'], proxyPrefixPath))
+          } catch (e) {
+            log.warn(e)
+            return res.status(400).send('400 Bad Request')
+          }
         }
 
         try {
@@ -233,6 +236,9 @@ module.exports.getRedirectAuthenticatedUser = function (options) {
   const ldapConfig = options.ldapConfig
   const ldapClient = options.ldapClient
 
+  const proxyPrefixPath = options.proxyPrefixPath
+  if (!proxyPrefixPath || typeof proxyPrefixPath !== 'string') throw Error('Missing options.proxyPrefixPath when setting up route handlers')
+
   return function redirectAuthenticatedUser (req, res) {
     const kthid = res.locals.userId
     const pgtIou = res.locals.pgtIou
@@ -257,8 +263,13 @@ module.exports.getRedirectAuthenticatedUser = function (options) {
         } else {
           log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to /`)
         }
-        // TODO: potential JS-injection
-        return res.redirect(_protectUrlFromInjection(req.query[ 'nextUrl' ] || '/'))
+
+        try {
+          return res.redirect(_protectUrlFromInjection(req.query[ 'nextUrl' ] || '/', proxyPrefixPath))
+        } catch (e) {
+          log.warn(e)
+          return res.status(400).send('400 Bad Request')
+        }
       } else {
         log.info({ req: req }, `Logged in user (${kthid}), does not exist in required group to /`)
         return res.redirect('/')
