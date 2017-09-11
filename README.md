@@ -1,6 +1,43 @@
 # kth-node-passport-cas
 Cas authentication strategy for Passport based but modified from github.com/sadne/passport-cas.
 
+## Migrating from <= 2.x to 3.x
+
+We are now whitelisting the redirect url (nextUrl param) to only allow relative paths actually owned by the application. When upgrading you need to provide these in the initialising of this package.
+
+Add proxyPrefixPath to route handler-init (normally in server.js):
+
+```JavaScript
+require('kth-node-passport-cas').routeHandlers({
+  casLoginUri: config.proxyPrefixPath.uri + '/login',
+  casGatewayUri: config.proxyPrefixPath.uri + '/loginGateway',
+  proxyPrefixPath: config.proxyPrefixPath.uri, // <-------------- here
+  server: server
+})
+```
+
+Also add proxyPrefixPath to redirect (normally in authentication.js):
+
+```JavaScript
+require('kth-node-passport-cas').routeHandlers.getRedirectAuthenticatedUser({
+  ldapConfig: config.ldap,
+  ldapClient: ldapClient,
+  proxyPrefixPath: config.proxyPrefixPath.uri, // <-------------- here
+  unpackLdapUser: function (ldapUser, pgtIou) {
+    return {
+      username: ldapUser.ugUsername,
+      displayName: ldapUser.displayName,
+      email: ldapUser.mail,
+      pgtIou: pgtIou,
+      // This is where you can set custom roles
+      isAdmin: hasGroup(config.auth.adminGroup, ldapUser),
+      isSupport: hasGroup(config.auth.supportGroup, ldapUser),
+      isSchema: hasGroup(config.auth.schemaGroup, ldapUser)
+    }
+  }
+})
+```
+
 ## API
 
 ### Strategy ### 
