@@ -2,11 +2,14 @@
 
 const passport = require('passport')
 const log = require('kth-node-log')
+const pathToRegex = require('path-to-regexp')
 
 function _protectUrlFromInjection (inStr, proxyPrefixPath) {
+  // Need to do a regex match to handle path style proxyPrefixPath
+  let testRegex = pathToRegex(proxyPrefixPath).replace('$/i', '(.*)$/i')
   if (inStr === '/') {
     return inStr
-  } else if (inStr.startsWith(proxyPrefixPath)) {
+  } else if (inStr.match(testRegex)) {
     return inStr
   } else {
     throw Error('Possible JavaScript-injection vuln during redirect')
