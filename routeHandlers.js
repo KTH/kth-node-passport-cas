@@ -6,13 +6,17 @@ const pathToRegex = require('path-to-regexp')
 
 function _protectUrlFromInjection (inStr, proxyPrefixPath) {
   // Need to do a regex match to handle path style proxyPrefixPath
-  let testRegex = pathToRegex(proxyPrefixPath).replace('$/i', '(.*)$/i')
+  // Adding '/:end*' to handle child routes in app
+  // Also need to split the url to remove GET-params and hash etc
+  // TODO: Should we use 'url'-package instead? Need to check that
+  // it doesn't contain different host, protocol or port if we do
+  let testRegex = pathToRegex(proxyPrefixPath + '/:end*')
   if (inStr === '/') {
     return inStr
-  } else if (inStr.match(testRegex)) {
+  } else if (testRegex.test(inStr.split('?')[0].split('#')[0])) {
     return inStr
   } else {
-    throw Error('Possible JavaScript-injection vuln during redirect')
+    throw Error('Possible JavaScript-injection vuln during rdirect')
   }
 }
 
