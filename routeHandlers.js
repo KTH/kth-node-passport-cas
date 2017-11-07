@@ -125,9 +125,11 @@ module.exports = function (options) {
       delete req.session.ldapDisplayName
       delete req.session.ldapUserName
       delete req.session.ldapEmail
-      log.info({ req: req }, 'Log out, destroying session on logout')
+      log.debug({ req: req })
+      log.info('Log out, destroying session on logout')
     } catch (error) {
-      log.info({ req: req, err: error }, 'Error destroying session on logout')
+      log.debug({ req: req, err: error })
+      log.info('Error destroying session on logout')
     }
 
     res.redirect('/')
@@ -165,7 +167,8 @@ module.exports = function (options) {
     if (req.user) {
       log.debug('req.user: ' + JSON.stringify(req.user))
       if (req.session.authUser && req.session.authUser.username) {
-        log.info({ req: req }, 'User logged in, found ldap user: ' + req.session.authUser.username)
+        log.debug({ req: req })
+        log.info('User logged in, found ldap user: ' + req.session.authUser.username)
         next()
       } else {
         log.info('unable to find ldap user: ' + req.user)
@@ -266,9 +269,11 @@ module.exports.getRedirectAuthenticatedUser = function (options) {
       if (user) {
         req.session.authUser = unpackLdapUser(user, pgtIou)
         if (req.query['nextUrl']) {
-          log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, redirecting to ${req.query[ 'nextUrl' ]}`)
+          log.debug({ req: req })
+          log.info(`Logged in user (${kthid}) exist in LDAP group, redirecting to ${req.query[ 'nextUrl' ]}`)
         } else {
-          log.info({ req: req }, `Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to /`)
+          log.debug({ req: req })
+          log.info(`Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to /`)
         }
 
         try {
@@ -278,7 +283,8 @@ module.exports.getRedirectAuthenticatedUser = function (options) {
           return res.status(400).send('400 Bad Request')
         }
       } else {
-        log.info({ req: req }, `Logged in user (${kthid}), does not exist in required group to /`)
+        log.debug({ req: req })
+        log.info(`Logged in user (${kthid}), does not exist in required group to /`)
         return res.redirect('/')
       }
     })
