@@ -267,21 +267,24 @@ module.exports.getRedirectAuthenticatedUser = function (options) {
       log.debug({ searchEntry: user }, 'LDAP search result')
 
       if (user) {
-        req.session.authUser = unpackLdapUser(user, pgtIou)
-        if (req.query['nextUrl']) {
-          log.debug({ req: req })
-          log.info(`Logged in user (${kthid}) exist in LDAP group, redirecting to ${req.query[ 'nextUrl' ]}`)
-        } else {
-          log.debug({ req: req })
-          log.info(`Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to /`)
-        }
+        Promise.resolve(unpackLdapUser(user, pgtIou))
+          .then(result => {
+            req.session.authUser = result
+            if (req.query['nextUrl']) {
+              log.debug({ req: req })
+              log.info(`Logged in user (${kthid}) exist in LDAP group, redirecting to ${req.query[ 'nextUrl' ]}`)
+            } else {
+              log.debug({ req: req })
+              log.info(`Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to /`)
+            }
 
-        try {
-          return res.redirect(_protectUrlFromInjection(req.query[ 'nextUrl' ] || '/', proxyPrefixPath))
-        } catch (e) {
-          log.warn(e)
-          return res.status(400).send('400 Bad Request')
-        }
+            try {
+              return res.redirect(_protectUrlFromInjection(req.query[ 'nextUrl' ] || '/', proxyPrefixPath))
+            } catch (e) {
+              log.warn(e)
+              return res.status(400).send('400 Bad Request')
+            }
+          })
       } else {
         log.debug({ req: req })
         log.info(`Logged in user (${kthid}), does not exist in required group to /`)

@@ -3,6 +3,9 @@
   "version": "3.0.3",
   "description": "Cas authentication strategy for Passport based but modified from github.com/sadne/passport-cas.",
   "main": "index.js",
+  "engines": {
+    "node": ">=6"
+  },
   "scripts": {
     "test": "echo \"ok\"",
     "codecheck": "standard",
