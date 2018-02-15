@@ -4,6 +4,8 @@ const passport = require('passport')
 const log = require('kth-node-log')
 const pathToRegex = require('path-to-regexp')
 
+const isProduction = process.env['NODE_ENV'] === 'production'
+
 function _protectUrlFromInjection (inStr, proxyPrefixPath) {
   // Need to do a regex match to handle path style proxyPrefixPath
   // Adding '/:end*' to handle child routes in app
@@ -37,7 +39,8 @@ module.exports = function (options) {
    * GET request to the login path E.g /login
    */
   function loginHandler (req, res, next) {
-    log.debug({ req: req }, '/login called, user: ' + req.user)
+    isProduction && log.debug({ req: req })
+    log.debug('/login called, user: ' + req.user)
 
     /**
      * Authenticating requests is as simple as calling passport.authenticate() and specifying which strategy to employ.
@@ -125,10 +128,11 @@ module.exports = function (options) {
       delete req.session.ldapDisplayName
       delete req.session.ldapUserName
       delete req.session.ldapEmail
-      log.debug({ req: req })
+      isProduction && log.debug({ req: req })
       log.info('Log out, destroying session on logout')
     } catch (error) {
-      log.debug({ req: req, err: error })
+      isProduction && log.debug({ req: req })
+      log.debug({ err: error })
       log.info('Error destroying session on logout')
     }
 
@@ -167,7 +171,7 @@ module.exports = function (options) {
     if (req.user) {
       log.debug('req.user: ' + JSON.stringify(req.user))
       if (req.session.authUser && req.session.authUser.username) {
-        log.debug({ req: req })
+        isProduction && log.debug({ req: req })
         log.info('User logged in, found ldap user: ' + req.session.authUser.username)
         next()
       } else {
@@ -271,10 +275,10 @@ module.exports.getRedirectAuthenticatedUser = function (options) {
           .then(result => {
             req.session.authUser = result
             if (req.query['nextUrl']) {
-              log.debug({ req: req })
+              isProduction && log.debug({ req: req })
               log.info(`Logged in user (${kthid}) exist in LDAP group, redirecting to ${req.query[ 'nextUrl' ]}`)
             } else {
-              log.debug({ req: req })
+              isProduction && log.debug({ req: req })
               log.info(`Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to /`)
             }
 
@@ -286,7 +290,7 @@ module.exports.getRedirectAuthenticatedUser = function (options) {
             }
           })
       } else {
-        log.debug({ req: req })
+        isProduction && log.debug({ req: req })
         log.info(`Logged in user (${kthid}), does not exist in required group to /`)
         return res.redirect('/')
       }
