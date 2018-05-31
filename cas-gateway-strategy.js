@@ -5,6 +5,7 @@ const util = require('util')
 const url = require('url')
 const request = require('request')
 const xml2js = require('xml2js')
+const log = require('kth-node-log')
 
 const defaults = {
   casUrl: '',
@@ -70,12 +71,15 @@ function GatewayStrategy (options, verify) {
 util.inherits(GatewayStrategy, PassportStrategy)
 
 GatewayStrategy.prototype.authenticate = function (req, options) {
+  log.debug('CasGateway: Auth for ticket')
   const ticket = req.query.ticket
   const loginUrl = url.parse(this.loginUrl, true)
   const serviceUrl = req.protocol + '://' + req.get('host') + req.originalUrl
 
   if (!ticket) {
+    log.debug('CasGateway: No ticket found')
     if (req.session.gatewayAttempts === 2) {
+      log.debug('CasGateway: Reached max number of retries.', req.session.gatewayAttempts)
       return this.success(this.anonymous)
     }
 
@@ -87,14 +91,16 @@ GatewayStrategy.prototype.authenticate = function (req, options) {
     }
 
     if (!req.session.gatewayAttempts) {
+      log.debug('CasGateway: session.gatewayAttempts is undefined, first auth try')
       req.session.gatewayAttempts = 1
     } else {
       req.session.gatewayAttempts += 1
+      log.debug('CasGateway: Retrying auth', req.session.gatewayAttempts)
     }
 
     return this.redirect(url.format(loginUrl))
   }
-
+  log.debug('CasGateway: Ticket found, resetting session.gatewayAttempts')
   req.session.gatewayAttempts = 0
 
   this.validateService(ticket, serviceUrl)
