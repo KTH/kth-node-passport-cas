@@ -76,6 +76,8 @@ GatewayStrategy.prototype.authenticate = function (req, options) {
   const loginUrl = url.parse(this.loginUrl, true)
   const serviceUrl = req.protocol + '://' + req.get('host') + req.originalUrl
 
+  log.debug('CasGateway: serviceUrl=', serviceUrl)
+
   if (!ticket) {
     log.debug('CasGateway: No ticket found')
     if (req.session.gatewayAttempts === 2) {
