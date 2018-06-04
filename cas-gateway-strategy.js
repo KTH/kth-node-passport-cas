@@ -74,7 +74,13 @@ GatewayStrategy.prototype.authenticate = function (req, options) {
   log.debug('CasGateway: Auth for ticket')
   const ticket = req.query.ticket
   const loginUrl = url.parse(this.loginUrl, true)
-  const serviceUrl = req.protocol + '://' + req.get('host') + req.originalUrl
+  let serviceUrl
+
+  if (req.headers['x-forwarded-proto']) {
+    serviceUrl = req.headers['x-forwarded-proto'] + '://' + req.get('host') + req.originalUrl
+  } else {
+    serviceUrl = req.protocol + '://' + req.get('host') + req.originalUrl
+  }
 
   log.debug('CasGateway: serviceUrl=', serviceUrl)
 
@@ -100,7 +106,18 @@ GatewayStrategy.prototype.authenticate = function (req, options) {
       log.debug('CasGateway: Retrying auth', req.session.gatewayAttempts)
     }
 
-    return this.redirect(url.format(loginUrl))
+    return new Promise((resolve, reject) => {
+      req.session.save(err => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve()
+        }
+      })
+    }).then(res => {
+      return this.redirect(url.format(loginUrl))
+    })
+
   }
   log.debug('CasGateway: Ticket found, resetting session.gatewayAttempts')
   req.session.gatewayAttempts = 0
