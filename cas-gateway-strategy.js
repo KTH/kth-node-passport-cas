@@ -117,7 +117,6 @@ GatewayStrategy.prototype.authenticate = function (req, options) {
     }).then(res => {
       return this.redirect(url.format(loginUrl))
     })
-
   }
   log.debug('CasGateway: Ticket found, resetting session.gatewayAttempts')
   req.session.gatewayAttempts = 0
