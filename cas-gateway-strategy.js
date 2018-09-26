@@ -70,6 +70,15 @@ function GatewayStrategy (options, verify) {
 
 util.inherits(GatewayStrategy, PassportStrategy)
 
+function _getProto(headerStr) {
+  if (typeof headerStr !== 'string') return undefined
+
+  const tmp = headerStr.split(',')
+  if (tmp.length <= 0) return undefined
+
+  return tmp[0].trim()
+}
+
 GatewayStrategy.prototype.authenticate = function (req, options) {
   log.debug('CasGateway: Auth for ticket')
   const ticket = req.query.ticket
@@ -77,9 +86,9 @@ GatewayStrategy.prototype.authenticate = function (req, options) {
   let serviceUrl
 
   if (req.headers['x-forwarded-proto']) {
-    serviceUrl = req.headers['x-forwarded-proto'] + '://' + req.get('host') + req.originalUrl
+    serviceUrl = _getProto(req.headers['x-forwarded-proto']) + '://' + req.get('host') + req.originalUrl
   } else {
-    serviceUrl = req.protocol + '://' + req.get('host') + req.originalUrl
+    serviceUrl = _getProto(req.protocol) + '://' + req.get('host') + req.originalUrl
   }
 
   log.debug('CasGateway: serviceUrl=', serviceUrl)
