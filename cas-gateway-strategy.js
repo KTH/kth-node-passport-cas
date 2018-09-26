@@ -70,7 +70,7 @@ function GatewayStrategy (options, verify) {
 
 util.inherits(GatewayStrategy, PassportStrategy)
 
-function _getProto(headerStr) {
+function _getProto (headerStr) {
   if (typeof headerStr !== 'string') return undefined
 
   const tmp = headerStr.split(',')
