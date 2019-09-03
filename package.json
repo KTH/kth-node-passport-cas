@@ -8,7 +8,7 @@
   },
   "scripts": {
     "test": "echo \"ok\"",
-    "codecheck": "standard",
+    "codecheck": "prettier",
     "preversion": "npm run codecheck && npm run test",
     "postversion": "git push && git push --tags"
   },

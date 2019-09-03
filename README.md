@@ -1,4 +1,5 @@
 # kth-node-passport-cas
+
 Cas authentication strategy for Passport based but modified from github.com/sadne/passport-cas.
 
 ## Migrating from <= 2.x to 3.x
@@ -40,7 +41,8 @@ require('kth-node-passport-cas').routeHandlers.getRedirectAuthenticatedUser({
 
 ## API
 
-### Strategy ### 
+### Strategy
+
 Passport style authentication strategy implemented for login through KTH CAS.
 
 Usage:
@@ -66,7 +68,8 @@ const strategy = new Strategy(casOptions,
 passport.use(strategy)
 ```
 
-### GatewayStrategy ###
+### GatewayStrategy
+
 Passport style authentication strategy implemented to check if user is logged in through KTH CAS.
 
 ```JavaScript
@@ -81,7 +84,8 @@ passport.use(new GatewayStrategy({
 }))
 ```
 
-### getProxyTicket ###
+### getProxyTicket
+
 Get a proxy ticket from CAS-service. Returns a promise.
 
 Call signature:
@@ -98,8 +102,8 @@ getProxyTicket (casService, pgtId, targetService)
   })
 ```
 
+### Express Route Handlers
 
-### Express Route Handlers ###
 Express route handlers used for KTH CAS authentication.
 
 ```JavaScript
@@ -131,7 +135,7 @@ const { authLoginHandler, authCheckHandler, logoutHandler, pgtCallbackHandler, s
   adminGroup: 'group_name', // LDAP admin group for this app
   casLoginUri: '/app/mountpoint/login',
   casGatewayUri: '/app/mountpoint/loginGateway',
-  cookieTimeout: COOKIE_TIMEOUT,  
+  cookieTimeout: COOKIE_TIMEOUT,
   ldapConfig: ldapConfig,
   ldapClient: ldapClient,
   server: server
