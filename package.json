@@ -1,6 +1,6 @@
 {
   "name": "kth-node-passport-cas",
-  "version": "3.1.7",
+  "version": "3.1.8",
   "description": "Cas authentication strategy for Passport based but modified from github.com/sadne/passport-cas.",
   "main": "index.js",
   "engines": {
@@ -31,12 +31,9 @@
     "xml2js": "^0.4.16"
   },
   "peerDependencies": {
-    "kth-node-log": "^2.0.0",
-    "kth-node-ldap": "^2.1.0",
-    "passport": "^0.3.2",
+    "kth-node-log": "^3.0.2",
+    "kth-node-ldap": "^2.4.0",
+    "passport": "^0.4.0",
     "passport-strategy": "^1.0.0"
-  },
-  "devDependencies": {
-    "standard": "^10.0.2"
   }
 }
