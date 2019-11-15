@@ -100,8 +100,6 @@ GatewayStrategy.prototype.authenticate = function(req, options) {
       _getProto(req.protocol) + "://" + req.get("host") + req.originalUrl;
   }
 
-  log.debug("CasGateway: serviceUrl=", serviceUrl);
-
   if (!ticket) {
     log.debug("CasGateway: No ticket found");
     if (req.session.gatewayAttempts === 2) {
@@ -118,6 +116,8 @@ GatewayStrategy.prototype.authenticate = function(req, options) {
       gateway: true,
       service: serviceUrl
     };
+
+    log.debug("CasGateway: serviceUrl=", serviceUrl);
 
     if (!req.session.gatewayAttempts) {
       log.debug(
@@ -141,6 +141,7 @@ GatewayStrategy.prototype.authenticate = function(req, options) {
       return this.redirect(url.format(loginUrl));
     });
   }
+
   log.debug("CasGateway: Ticket found, resetting session.gatewayAttempts");
   req.session.gatewayAttempts = 0;
 
