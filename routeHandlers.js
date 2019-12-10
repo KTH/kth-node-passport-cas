@@ -109,7 +109,7 @@ module.exports = function(options) {
 
           if (user === "anonymous-user") {
             if (req.query.nextUrl == null) {
-              log.debug("CasGateway: No target for redirect given");
+              log.info("CasGateway: No target for redirect given");
               return res.status(400).send("400 Bad Request");
             }
             try {
