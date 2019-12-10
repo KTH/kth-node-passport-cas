@@ -10,14 +10,14 @@ function _protectUrlFromInjection(inStr, proxyPrefixPath) {
   // Also need to split the url to remove GET-params and hash etc
   // TODO: Should we use 'url'-package instead? Need to check that
   // it doesn't contain different host, protocol or port if we do
-  let testRegex = pathToRegex(proxyPrefixPath + "/:end*");
+  const testRegex = pathToRegex(proxyPrefixPath + "/:end*");
   if (inStr === "/") {
     return inStr;
-  } else if (testRegex.test(inStr.split("?")[0].split("#")[0])) {
-    return inStr;
-  } else {
-    throw Error("Possible JavaScript-injection vuln during rdirect");
   }
+  if (typeof inStr === "string" && testRegex.test(inStr.split("?")[0].split("#")[0])) {
+    return inStr;
+  }
+  throw Error("Possible JavaScript-injection vuln during redirect");
 }
 
 module.exports = function(options) {
@@ -108,9 +108,13 @@ module.exports = function(options) {
           }
 
           if (user === "anonymous-user") {
+            if (req.query.nextUrl == null) {
+              log.debug("CasGateway: No target for redirect given");
+              return res.status(400).send("400 Bad Request");
+            }
             try {
               return res.redirect(
-                _protectUrlFromInjection(req.query["nextUrl"], proxyPrefixPath)
+                _protectUrlFromInjection(req.query.nextUrl, proxyPrefixPath)
               );
             } catch (e) {
               log.warn(e);
@@ -305,10 +309,10 @@ module.exports.getRedirectAuthenticatedUser = function(options) {
         if (user) {
           Promise.resolve(unpackLdapUser(user, pgtIou)).then(result => {
             req.session.authUser = result;
-            if (req.query["nextUrl"]) {
+            if (req.query.nextUrl) {
               log.info(
                 `Logged in user (${kthid}) exist in LDAP group, redirecting to ${
-                  req.query["nextUrl"]
+                req.query.nextUrl
                 }`
               );
             } else {
@@ -320,7 +324,7 @@ module.exports.getRedirectAuthenticatedUser = function(options) {
             try {
               return res.redirect(
                 _protectUrlFromInjection(
-                  req.query["nextUrl"] || "/",
+                  req.query.nextUrl || "/",
                   proxyPrefixPath
                 )
               );
