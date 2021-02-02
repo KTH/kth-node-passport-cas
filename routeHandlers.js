@@ -20,20 +20,15 @@ function _protectUrlFromInjection(inStr, proxyPrefixPath) {
   throw Error("Possible JavaScript-injection vuln during redirect");
 }
 
-module.exports = function(options) {
+module.exports = function (options) {
   const casLoginUri = options.casLoginUri; // paths.cas.login.uri
-  if (!casLoginUri || typeof casLoginUri !== "string")
-    throw Error("Missing options.casLoginUri when setting up route handlers");
+  if (!casLoginUri || typeof casLoginUri !== "string") throw Error("Missing options.casLoginUri when setting up route handlers");
 
   const casGatewayUri = options.casGatewayUri; // paths.cas.gateway.uri
-  if (!casGatewayUri || typeof casGatewayUri !== "string")
-    throw Error("Missing options.casGatewayUri when setting up route handlers");
+  if (!casGatewayUri || typeof casGatewayUri !== "string") throw Error("Missing options.casGatewayUri when setting up route handlers");
 
   const proxyPrefixPath = options.proxyPrefixPath;
-  if (!proxyPrefixPath || typeof proxyPrefixPath !== "string")
-    throw Error(
-      "Missing options.proxyPrefixPath when setting up route handlers"
-    );
+  if (!proxyPrefixPath || typeof proxyPrefixPath !== "string") throw Error("Missing options.proxyPrefixPath when setting up route handlers");
 
   const server = options.server;
   const cookieTimeout = options.cookieTimeout || 0;
@@ -56,7 +51,7 @@ module.exports = function(options) {
        * Custom Callback for success. If the built-in options are not sufficient for handling an authentication request,
        * a custom callback can be provided to allow the application to handle success or failure.
        */
-      function(err, user, info) {
+      function (err, user, info) {
         if (err) {
           return next(err);
         }
@@ -66,23 +61,19 @@ module.exports = function(options) {
           return res.redirect(casLoginUri);
         }
 
-        req.logIn(user, function(err) {
+        req.logIn(user, function (err) {
           if (err) {
             return next(err);
           }
           try {
             // Redirects the authenticated user based on the user group membership.
-            log.debug(
-              "Redirects the authenticated user based on the user group membership"
-            );
+            log.debug("Redirects the authenticated user based on the user group membership");
             // return redirectAuthenticatedUser(user, res, req, info.pgtIou)
             res.locals.userId = user;
             res.locals.pgtIou = info.pgtIou;
             return next();
           } catch (err) {
-            log.debug(
-              "Could not redirect the authenticated user based on the user group membership"
-            );
+            log.debug("Could not redirect the authenticated user based on the user group membership");
             return next(err);
           }
         });
@@ -95,14 +86,14 @@ module.exports = function(options) {
       "cas-gateway",
       {
         successReturnToOrRedirect: "/",
-        failureRedirect: "/error"
+        failureRedirect: "/error",
       },
-      function(err, user, info) {
+      function (err, user, info) {
         if (err) {
           return next(err);
         }
 
-        req.logIn(user, function(err) {
+        req.logIn(user, function (err) {
           if (err) {
             return next(err);
           }
@@ -113,9 +104,7 @@ module.exports = function(options) {
               return res.status(400).send("400 Bad Request");
             }
             try {
-              return res.redirect(
-                _protectUrlFromInjection(req.query.nextUrl, proxyPrefixPath)
-              );
+              return res.redirect(_protectUrlFromInjection(req.query.nextUrl, proxyPrefixPath));
             } catch (e) {
               log.warn(e);
               return res.status(400).send("400 Bad Request");
@@ -177,10 +166,7 @@ module.exports = function(options) {
   }
 
   function serverLogin(req, res, next) {
-    log.debug(
-      { session: req.session },
-      "Login function called. User: " + req.user
-    );
+    log.debug({ session: req.session }, "Login function called. User: " + req.user);
 
     if (req.user && req.user === "anonymous-user") {
       _clearUser(req);
@@ -189,9 +175,7 @@ module.exports = function(options) {
     if (req.user) {
       log.debug("req.user: " + JSON.stringify(req.user));
       if (req.session.authUser && req.session.authUser.username) {
-        log.info(
-          "User logged in, found ldap user: " + req.session.authUser.username
-        );
+        log.info("User logged in, found ldap user: " + req.session.authUser.username);
         next();
       } else {
         log.info("unable to find ldap user: " + req.user);
@@ -201,9 +185,7 @@ module.exports = function(options) {
     } else {
       req.nextUrl = req.originalUrl;
       log.debug("Next url: " + req.nextUrl);
-      return res.redirect(
-        casLoginUri + "?nextUrl=" + encodeURIComponent(req.nextUrl)
-      );
+      return res.redirect(casLoginUri + "?nextUrl=" + encodeURIComponent(req.nextUrl));
     }
   }
 
@@ -222,19 +204,13 @@ module.exports = function(options) {
         back to the CAS.
        */
       const time = new Date().getTime() / 1000;
-      if (
-        req.user &&
-        req.user === "anonymous-user" &&
-        time - req.session.time > cookieTimeout
-      ) {
+      if (req.user && req.user === "anonymous-user" && time - req.session.time > cookieTimeout) {
         _clearUser(req);
       }
       req.session.time = time;
 
       if (req.session.gatewayAttempts >= 2) {
-        log.debug(
-          "gatewayLogin: exhausted gateway attempts, allow access as anonymous user"
-        );
+        log.debug("gatewayLogin: exhausted gateway attempts, allow access as anonymous user");
         log.debug({ session: req.session }, "gatewayLogin: session");
         req.session.gatewayAttempts = 0; // reset gateway attempts to fix authentication for users not logged in the first time a cookie is set
         next();
@@ -248,9 +224,7 @@ module.exports = function(options) {
         log.debug("gatewayLogin: no user, attempt gateway login");
         req.session.redirectTo = req.originalUrl;
         req.session.fallbackTo = fallback;
-        res.redirect(
-          casGatewayUri + "?nextUrl=" + encodeURIComponent(req.originalUrl)
-        );
+        res.redirect(casGatewayUri + "?nextUrl=" + encodeURIComponent(req.originalUrl));
       }
     };
   }
@@ -261,7 +235,7 @@ module.exports = function(options) {
     logoutHandler: logoutHandler,
     pgtCallbackHandler: pgtCallbackHandler,
     serverLogin: serverLogin,
-    getServerGatewayLogin: serverGatewayLogin
+    getServerGatewayLogin: serverGatewayLogin,
   };
 };
 
@@ -274,73 +248,54 @@ module.exports = function(options) {
  * sizeLimit  the maximum number of entries to return. Defaults to 0 (unlimited).
  * timeLimit  the maximum amount of time the server should take in responding, in seconds. Defaults to 10. Lots of servers will ignore this.
  */
-module.exports.getRedirectAuthenticatedUser = function(options) {
+module.exports.getRedirectAuthenticatedUser = function (options) {
   const unpackLdapUser = options.unpackLdapUser;
   const ldapConfig = options.ldapConfig;
   const ldapClient = options.ldapClient;
 
   const proxyPrefixPath = options.proxyPrefixPath;
-  if (!proxyPrefixPath || typeof proxyPrefixPath !== "string")
-    throw Error(
-      "Missing options.proxyPrefixPath when setting up route handlers"
-    );
+  if (!proxyPrefixPath || typeof proxyPrefixPath !== "string") throw Error("Missing options.proxyPrefixPath when setting up route handlers");
 
   return function redirectAuthenticatedUser(req, res) {
     const kthid = res.locals.userId;
     const pgtIou = res.locals.pgtIou;
 
-    var searchFilter = ldapConfig.filter.replace(
-      ldapConfig.filterReplaceHolder,
-      kthid
-    );
+    var searchFilter = ldapConfig.filter.replace(ldapConfig.filterReplaceHolder, kthid);
     log.debug("Redirecting user with id", { kthId: kthid });
     var searchOptions = {
       scope: ldapConfig.scope,
       filter: searchFilter,
       attributes: ldapConfig.userattrs,
       sizeLimits: ldapConfig.searchlimit,
-      timeLimit: ldapConfig.searchtimeout
+      timeLimit: ldapConfig.searchtimeout,
     };
     ldapClient
       .searchOne(ldapConfig.base, searchOptions)
-      .then(user => {
+      .then((user) => {
         log.debug({ searchEntry: user }, "LDAP search result");
 
         if (user) {
-          Promise.resolve(unpackLdapUser(user, pgtIou)).then(result => {
+          Promise.resolve(unpackLdapUser(user, pgtIou)).then((result) => {
             req.session.authUser = result;
             if (req.query.nextUrl) {
-              log.info(
-                `Logged in user (${kthid}) exist in LDAP group, redirecting to ${
-                req.query.nextUrl
-                }`
-              );
+              log.info(`Logged in user (${kthid}) exist in LDAP group, redirecting to ${req.query.nextUrl}`);
             } else {
-              log.info(
-                `Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to /`
-              );
+              log.info(`Logged in user (${kthid}) exist in LDAP group, but is missing nextUrl. Redirecting to /`);
             }
 
             try {
-              return res.redirect(
-                _protectUrlFromInjection(
-                  req.query.nextUrl || "/",
-                  proxyPrefixPath
-                )
-              );
+              return res.redirect(_protectUrlFromInjection(req.query.nextUrl || "/", proxyPrefixPath));
             } catch (e) {
               log.warn(e);
               return res.status(400).send("400 Bad Request");
             }
           });
         } else {
-          log.info(
-            `Logged in user (${kthid}), does not exist in required group to /`
-          );
+          log.info(`Logged in user (${kthid}), does not exist in required group to /`);
           return res.redirect("/");
         }
       })
-      .catch(err => {
+      .catch((err) => {
         log.error({ err: err }, "LDAP search error");
         // Is this really desired behaviour? Would make more sense if we got an error message
         return res.redirect("/");
