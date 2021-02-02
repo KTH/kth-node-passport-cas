@@ -290,7 +290,11 @@ module.exports.getRedirectAuthenticatedUser = function (options) {
             }
 
             try {
-              return res.redirect(_protectUrlFromInjection(req.query.nextUrl || "/", proxyPrefixPath));
+              let nextUrl = req.query.nextUrl || proxyPrefixPath;
+              if (nextUrl.indexOf("?") === 0) {
+                nextUrl = proxyPrefixPath + nextUrl;
+              }
+              return res.redirect(_protectUrlFromInjection(nextUrl, proxyPrefixPath));
             } catch (e) {
               log.warn(e);
               return res.status(400).send("400 Bad Request");
