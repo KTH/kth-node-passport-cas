@@ -17,7 +17,7 @@ function _protectUrlFromInjection(inStr, proxyPrefixPath) {
   if (typeof inStr === "string" && testRegex.test(inStr.split("?")[0].split("#")[0])) {
     return inStr;
   }
-  throw Error("Possible JavaScript-injection vuln during redirect");
+  throw Error("Possible JavaScript-injection vuln during redirect <" + inStr + ">");
 }
 
 module.exports = function (options) {
@@ -100,11 +100,17 @@ module.exports = function (options) {
 
           if (user === "anonymous-user") {
             if (req.query.nextUrl == null) {
-              log.info("CasGateway: No target for redirect given");
-              return res.status(400).send("400 Bad Request");
+              if (!proxyPrefixPath) {
+                log.info("CasGateway: No target for redirect given");
+                return res.status(400).send("400 Bad Request");
+              }
             }
             try {
-              return res.redirect(_protectUrlFromInjection(req.query.nextUrl, proxyPrefixPath));
+              let nextUrl = req.query.nextUrl || proxyPrefixPath;
+              if (nextUrl.indexOf("?") === 0) {
+                nextUrl = proxyPrefixPath + nextUrl;
+              }
+              return res.redirect(_protectUrlFromInjection(nextUrl, proxyPrefixPath));
             } catch (e) {
               log.warn(e);
               return res.status(400).send("400 Bad Request");
