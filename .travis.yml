@@ -1,11 +1,4 @@
 language: node_js
 node_js:
-- '6.9.1'
-deploy:
-  provider: npm
-  email: webmaster-private@kth.se
-  api_key:
-    secure: ue7webyRUPqrakJHY5ccZPmP3hUbN9NM70pyVBN7gGh8fdYBBsCPGIKaZxNjm44eRo3ph6w/USZbogV9FyeTmDGYCUjU9m15k/5sQ6XdyOx5aQYep/SA7PHJLr7eB/+gOCYNnXL3CQ2I36w009pmIKW5SA5g3WFKeLBIn0Kz6DNxcu0IrsYLnoL+wRTVsQplpEwg/f1uH9REnT8bdao3qlagCqM6ckxXmKdLnXCj+QVwk7/SJ6h4ccRbFXV9dswZkwkCp2AY5W5qhc9w5ULtYx/9sxFJcjJPW/x2cTJhNBJwr0tozrs82+X5+W8Y2AWYcqVhpxrAhDIYrN3UkEYsG64rHL6Kf8PEKoaLwv65UWE00i+afj4PSL4QOurrjzeTnvGjelg1w10ymhx8vna8lRuYW2FNdxI0/gyrqz3JflgeuVXe/cLcg5w1A3N6ES/gSOOTZ5UgC51EgvdRXG01mz3f1UbNtGohclYxzQ2LAsrUJUJE/nQp/67/od6d5IpWHdKhgA2VPp41SWdvknVDMgxvcS3iIhRhWVb6sES57G3JvjlFiZoUnMFqRKU9m7B6oXJ2uJCkYx0Lmvl/1TxfNRSmnfN/YddXlyzLsnn/gXOFGaTlFad4Y5QohjsiP51WsI4Q1iDkSX5E+/87wmgJ4AbVYRfm/1fnHc6IFj639fE=
-  on:
-    tags: true
-    repo: KTH/kth-node-passport-cas
+  - "12"
+  - "14"
